@@ -1,0 +1,108 @@
+name: customer-support-triage
+version: "1.0.0"
+description: >
+  A real-world Customer Support Ticket Triage environment where an AI agent
+  learns to classify priority, craft appropriate responses, and resolve support
+  tickets within SLA constraints. Simulates an enterprise help-desk queue.
+
+authors:
+  - name: "OpenEnv Submission"
+
+license: MIT
+
+environment:
+  module: env
+  class: CustomerSupportEnv
+
+tasks:
+  - id: easy
+    description: >
+      Triage 5 support tickets with clear signals and no noise.
+      All ticket priorities are unambiguous.
+    max_steps: 5
+    reward_threshold: 0.75
+
+  - id: medium
+    description: >
+      Triage 10 support tickets with 20% priority noise injected.
+      Some tickets have misleading signals requiring careful reading.
+    max_steps: 10
+    reward_threshold: 0.65
+
+  - id: hard
+    description: >
+      Triage 15 support tickets with 30% priority noise and SLA time pressure.
+      Several tickets are already near or past their SLA deadline.
+    max_steps: 15
+    reward_threshold: 0.55
+
+observation_space:
+  type: dict
+  fields:
+    current_ticket:
+      type: dict
+      fields:
+        ticket_id: {type: string}
+        subject: {type: string}
+        body: {type: string}
+        category: {type: string, enum: [billing, technical, account, shipping, general]}
+        sentiment: {type: string, enum: [polite, neutral, confused, frustrated, angry, panicked]}
+        age_hours: {type: float, description: "How many hours old the ticket is"}
+        status: {type: string, enum: [open, in_progress, escalated, resolved, closed]}
+    queue_size: {type: int, description: "Remaining tickets in queue"}
+    elapsed_steps: {type: int}
+    max_steps: {type: int}
+    task_difficulty: {type: string, enum: [easy, medium, hard]}
+
+action_space:
+  type: dataclass
+  class: AgentAction
+  fields:
+    ticket_id:
+      type: string
+      description: "Must match current_ticket.ticket_id"
+    assigned_priority:
+      type: string
+      enum: [low, medium, high, critical]
+      description: "Agent's priority classification"
+    response:
+      type: string
+      description: "Customer-facing response message"
+    escalate:
+      type: bool
+      default: false
+      description: "Set true to escalate to human agent"
+    resolve:
+      type: bool
+      default: false
+      description: "Set true to close the ticket after responding"
+
+reward:
+  range: [0.0, 1.0]
+  components:
+    priority_accuracy:
+      max: 0.40
+      description: "Accuracy of priority classification vs ground truth"
+    response_quality:
+      max: 0.35
+      description: "Quality, relevance, empathy, and length of response"
+    sla_compliance:
+      max: 0.25
+      description: "Resolution speed relative to SLA deadline"
+
+graders:
+  - task: easy
+    seed: 42
+    target_mean_reward: 0.75
+
+  - task: medium
+    seed: 42
+    target_mean_reward: 0.65
+
+  - task: hard
+    seed: 42
+    target_mean_reward: 0.55
+
+docker:
+  base_image: python:3.11-slim
+  port: 7860
