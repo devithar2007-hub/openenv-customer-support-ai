@@ -250,19 +250,21 @@ class CustomerSupportEnv:
     # ------------------------------------------------------------------
     # OpenEnv API
     # ------------------------------------------------------------------
+class CustomerSupportEnv:
 
-   def reset(self):
-    observation = {"state": "start"}
-    info = {}
-    return observation, info
+    def reset(self):
+        return {
+            "observation": {"state": "start"},
+            "info": {}
+        }
 
-
-def step(self, action):
-    observation = {"state": "next"}
-    reward = 1.0
-    done = False
-    info = {}
-    return observation, reward, done, info
+    def step(self, action):
+        return {
+            "observation": {"state": "next"},
+            "reward": 1.0,
+            "done": False,
+            "info": {}
+        }
     
     def state(self) -> Dict[str, Any]:
         """Return full internal state (for debugging / graders)."""
